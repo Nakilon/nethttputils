@@ -18,6 +18,7 @@ module NetHTTPUtils
     attr_reader :code
     def initialize body, code = nil
       @code = code
+      @body = body
       body = body[0...997] + "..." if body.size > 1000
       super "HTTP error ##{code.inspect} #{body}"
     end
