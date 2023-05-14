@@ -212,10 +212,10 @@ module NetHTTPUtils
                 response.fetch("x-rate-limit-reset").to_i,
                 now.to_i,
               ]
-            elsif response.key? "x-ratelimit-remaining"
+            elsif response.key? "x-ratelimit-remaining"               # this is probably reddit-specific because ...
               [
                 response.fetch("x-ratelimit-remaining").to_i,
-                now.to_i + response.fetch("x-ratelimit-reset").to_i,
+                now.to_i + response.fetch("x-ratelimit-reset").to_i,  # ... reddit sucks and so does not use timestamp here
                 now.to_i,
               ]
             end
