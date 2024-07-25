@@ -133,7 +133,7 @@ module NetHTTPUtils
               # p Object.instance_method(:method).bind(request).call(:set_form).source_location
               # request.basic_auth *p(auth.map(&URI.method(:escape))) if auth
               request.basic_auth *auth if auth
-              if (mtd == :POST || mtd == :PATCH) && !form.empty?
+              if %i{ POST PATCH PUT }.include?(mtd) && !form.empty?
                 form = form.map{ |k, v| [k.to_s, v.is_a?(Integer) ? v.to_s : v] }.to_h
                 case type
                   when :json
@@ -161,14 +161,15 @@ module NetHTTPUtils
               logger.debug "query: #{uri.query.inspect}"
               logger.debug "content-type: #{request.content_type.inspect}"
               curl_form = case request.content_type
-                when "application/json" ; "-d #{JSON.dump form} "
+                when /\Aapplication\/json(;|\z)/ ; "-d #{JSON.dump form} "
                 when "multipart/form-data" ; form.map{ |k, v| "-F \"#{k}=#{v.respond_to?(:to_path) ? "@#{v.to_path}" : v}\" " }.join
                 when "application/x-www-form-urlencoded" ; "-d \"#{URI.encode_www_form form}\" "
                 else %i{ HEAD GET }.include?(mtd) ? "" : fail("unknown content-type '#{request.content_type}'")
               end
+              require "shellwords"
               logger.debug "curl -vsSL --compressed -o /dev/null #{"-X HEAD " if request.is_a? Net::HTTP::Head}#{
                 request.each_header.map{ |k, v| "-H \"#{k}: #{v}\" " unless k == "host" }.join
-              }#{curl_form}'#{uri.scheme}://#{uri.host}#{uri.path}#{"?#{uri.query}" if uri.query && !uri.query.empty?}'"
+              }#{curl_form}#{Shellwords.escape uri.to_s}"
               logger.debug "> header: #{request.each_header.to_a}"
               logger.debug "> body: #{request.body.inspect.tap{ |body| body.replace body[0...997] + "..." if body.size > 1000 }}"
               # TODO this is buggy -- mixes lines from different files into one line
