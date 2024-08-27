@@ -264,8 +264,21 @@ module NetHTTPUtils
                 mtd = :GET
               end
               do_request.call prepare_request[new_uri]
+            when "403"
+              logger.error "#{response.code} from #{request.method} #{request.uri}#{
+                if response.to_hash["content-type"] == ["application/json"]
+                  " with body #{JSON.load response.body}"
+                else
+                  " with body #{response.body.class} #{response.to_hash["content-type"]}"
+                end
+              } at #{
+                caller_locations.chunk(&:path).take(2).map do |caller_path, caller_locs|
+                  [caller_path, caller_locs.map(&:lineno).chunk(&:itself).map(&:first)].join ":"
+                end.join " "
+              }"
+              response
             when "404"
-              logger.error "404 at #{request.method} #{request.uri} with body: #{
+              logger.error "404 from #{request.method} #{request.uri} with body: #{
                 if !response.body
                   response.body.class
                 elsif response.body.is_a? Net::ReadAdapter
@@ -279,8 +292,8 @@ module NetHTTPUtils
                 end
               }"
               response
-            when "429"
-              logger.error "429 at #{request.method} #{request.uri} with body: #{response.body.inspect}"
+            when "415", "429"
+              logger.error "#{response.code} at #{request.method} #{request.uri} with body: #{response.body.inspect}"
               response
             when /\A50\d\z/
               logger.error "#{response.code} at #{request.method} #{request.uri} with body: #{
@@ -295,8 +308,9 @@ module NetHTTPUtils
               response
             else
               logger.warn "code #{response.code} from #{request.method} #{request.uri} at #{
-                caller_path, caller_locs = caller_locations.chunk(&:path).first
-                [caller_path, caller_locs.map(&:lineno).chunk(&:itself).map(&:first)].join ":"
+                caller_locations.chunk(&:path).take(2).map do |caller_path, caller_locs|
+                  [caller_path, caller_locs.map(&:lineno).chunk(&:itself).map(&:first)].join ":"
+                end.join " "
               }"
               logger.debug "< body: #{
                 response.body.tap do |body|
