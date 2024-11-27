@@ -132,20 +132,20 @@ module NetHTTPUtils
               # p Object.instance_method(:method).bind(request).call(:basic_auth).source_location
               # p Object.instance_method(:method).bind(request).call(:set_form).source_location
               # request.basic_auth *p(auth.map(&URI.method(:escape))) if auth
-              request.basic_auth *auth if auth
+              request.basic_auth(*auth) if auth
               if %i{ POST PATCH PUT }.include?(mtd) && !form.empty?
-                form = form.map{ |k, v| [k.to_s, v.is_a?(Integer) ? v.to_s : v] }.to_h
+                form_hash = form.map{ |k, v| [k.to_s, v.is_a?(Integer) ? v.to_s : v] }.to_h
                 case type
                   when :json
-                                    request.body = JSON.dump form
+                                    request.body = JSON.dump form_hash
                                     request.content_type = "application/json"
                   when :multipart   # in this case form can be of width 3 (when sending files)
-                    request.set_form form, "multipart/form-data"
+                    request.set_form form_hash, "multipart/form-data"
                   when :form
-                               if form.any?{ |k, v| v.respond_to? :to_path }
+                               if form.any?{ |k, v, | v.respond_to? :to_path }
                                  request.set_form form, "multipart/form-data"
                                else
-                                 request.set_form_data form
+                                 request.set_form_data form_hash
                                  request.content_type = "application/x-www-form-urlencoded;charset=UTF-8"
                                end
                   else
@@ -333,7 +333,6 @@ module NetHTTPUtils
         patch_request: nil, &block
       timeout ||= 30
       http = start_http http, max_start_http_retry_delay, timeout, no_redirect, *proxy unless http.is_a? Net::HTTP
-      path = http.instance_variable_get(:@uri).path
 
       check_code = lambda do |body|
         fail unless code = body.instance_variable_get(:@last_response).code
