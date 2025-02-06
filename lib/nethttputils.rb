@@ -134,7 +134,7 @@ module NetHTTPUtils
               # request.basic_auth *p(auth.map(&URI.method(:escape))) if auth
               request.basic_auth(*auth) if auth
               if %i{ POST PATCH PUT }.include?(mtd)
-                form_hash = form.map{ |k, v| [k.to_s, v.is_a?(Integer) ? v.to_s : v] }.to_h
+                form_hash = form.map{ |k, v| [k.to_s, v] }.to_h
                 case type
                   when :json
                                     request.body = JSON.dump form_hash
